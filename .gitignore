@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+data/augmented/
+*.pt
+*.onnx
+outputs/
+mlruns/
+checkpoints/
+*.zip
+.ipynb_checkpoints/

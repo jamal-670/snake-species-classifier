@@ -1,0 +1,15 @@
+{
+  "id": "ibrahimjamal786/snake-classifier",
+  "title": "snake-classifier",
+  "code_file": "run_training.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "ibrahimjamal786/snake-dataset"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

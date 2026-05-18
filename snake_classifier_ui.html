@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SnakeID — Species Classifier</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0d1a0f;
+    --bg2:       #111f13;
+    --bg3:       #162118;
+    --border:    #2a3d2c;
+    --accent:    #7ec850;
+    --accent2:   #4a9e2f;
+    --gold:      #c9a84c;
+    --text:      #e8f0e9;
+    --text2:     #8fa890;
+    --danger:    #e05252;
+    --card:      #131f14;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(126,200,80,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 90%, rgba(74,158,47,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Grid lines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(126,200,80,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(126,200,80,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* Header */
+  header {
+    padding: 48px 0 40px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .logo-mark {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%,100% { box-shadow: 0 0 0 0 rgba(126,200,80,0.0); }
+    50%      { box-shadow: 0 0 0 8px rgba(126,200,80,0.08); }
+  }
+
+  .header-text h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .header-text h1 span { color: var(--accent); }
+
+  .header-text p {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(126,200,80,0.1);
+    border: 1px solid rgba(126,200,80,0.2);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+  }
+
+  .tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 16px;
+    padding: 56px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(126,200,80,0.03) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(126,200,80,0.04);
+  }
+
+  .upload-zone:hover::before,
+  .upload-zone.drag-over::before { opacity: 1; }
+
+  .upload-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: block;
+    opacity: 0.7;
+  }
+
+  .upload-zone h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .upload-zone p {
+    color: var(--text2);
+    font-size: 0.85rem;
+  }
+
+  .upload-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 28px;
+    background: var(--accent);
+    color: #0d1a0f;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .upload-btn:hover {
+    background: #9adc6a;
+    transform: translateY(-1px);
+  }
+
+  #fileInput { display: none; }
+
+  /* Preview */
+  .preview-wrap {
+    display: none;
+    margin-top: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .preview-wrap img {
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .preview-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(13,26,15,0.95));
+    padding: 20px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .preview-filename {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text2);
+  }
+
+  .analyze-btn {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #0d1a0f;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .analyze-btn:hover:not(:disabled) {
+    background: #9adc6a;
+    transform: translateY(-1px);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    margin-top: 32px;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .loader {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text2);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Results */
+  .results {
+    display: none;
+    margin-top: 32px;
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(16px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .result-header h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text2);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .result-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Top prediction card */
+  .top-prediction {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .top-prediction::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), transparent);
+  }
+
+  .confidence-ring {
+    position: absolute;
+    top: 20px; right: 24px;
+    width: 72px; height: 72px;
+  }
+
+  .confidence-ring svg { transform: rotate(-90deg); }
+
+  .confidence-ring .track {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 4;
+  }
+
+  .confidence-ring .fill {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 0 200;
+    transition: stroke-dasharray 1s ease;
+  }
+
+  .confidence-ring .pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .species-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  .species-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 4px;
+    padding-right: 90px;
+    text-transform: capitalize;
+  }
+
+  .venomous-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 8px;
+  }
+
+  .venomous-tag.danger {
+    background: rgba(224,82,82,0.12);
+    border: 1px solid rgba(224,82,82,0.25);
+    color: var(--danger);
+  }
+
+  .venomous-tag.safe {
+    background: rgba(126,200,80,0.1);
+    border: 1px solid rgba(126,200,80,0.2);
+    color: var(--accent);
+  }
+
+  /* Top 5 bars */
+  .top5-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .top5-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .top5-item:hover { border-color: rgba(126,200,80,0.3); }
+
+  .top5-item.first {
+    border-color: rgba(126,200,80,0.25);
+    background: rgba(126,200,80,0.04);
+  }
+
+  .rank {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    text-align: center;
+  }
+
+  .top5-item.first .rank { color: var(--accent); }
+
+  .bar-wrap { }
+
+  .bar-label {
+    font-size: 0.85rem;
+    color: var(--text);
+    margin-bottom: 5px;
+    text-transform: capitalize;
+  }
+
+  .bar-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    background: var(--accent2);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1s ease;
+  }
+
+  .top5-item.first .bar-fill { background: var(--accent); }
+
+  .bar-pct {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  .top5-item.first .bar-pct { color: var(--accent); }
+
+  /* Error */
+  .error-box {
+    display: none;
+    margin-top: 24px;
+    background: rgba(224,82,82,0.08);
+    border: 1px solid rgba(224,82,82,0.25);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--danger);
+  }
+
+  /* Try again */
+  .try-again {
+    display: none;
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .try-again button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .try-again button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  footer p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+  }
+
+  .api-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 6px;
+  }
+
+  /* Divider label */
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-mark">🐍</div>
+    <div class="header-text">
+      <h1>Snake<span>ID</span></h1>
+      <p>EfficientNet-B3 · 39 species · 81.6% accuracy</p>
+      <span class="tag">Model online</span>
+    </div>
+  </header>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="uploadZone">
+    <span class="upload-icon">📷</span>
+    <h2>Drop a snake image here</h2>
+    <p>JPG, PNG, WEBP supported</p>
+    <label class="upload-btn" for="fileInput">Browse files</label>
+    <input type="file" id="fileInput" accept="image/*"/>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-wrap" id="previewWrap">
+    <img id="previewImg" src="" alt="Snake preview"/>
+    <div class="preview-overlay">
+      <span class="preview-filename" id="previewName"></span>
+      <button class="analyze-btn" id="analyzeBtn" onclick="runPrediction()">
+        Identify species →
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loader"></div>
+    <p>Analyzing image...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="result-header">
+      <h3>Identification result</h3>
+    </div>
+
+    <!-- Top prediction -->
+    <div class="top-prediction" id="topCard">
+      <div class="species-label">Most likely species</div>
+      <div class="species-name" id="topSpecies">—</div>
+      <div id="venomousTag"></div>
+
+      <div class="confidence-ring" id="ringWrap">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle class="track" cx="36" cy="36" r="30"/>
+          <circle class="fill" id="ringFill" cx="36" cy="36" r="30"/>
+        </svg>
+        <div class="pct" id="ringPct">0%</div>
+      </div>
+    </div>
+
+    <!-- Top 5 -->
+    <div class="section-label">Top 5 candidates</div>
+    <div class="top5-grid" id="top5Grid"></div>
+  </div>
+
+  <!-- Try Again -->
+  <div class="try-again" id="tryAgain">
+    <button onclick="resetUI()">← Try another image</button>
+  </div>
+
+  <footer>
+    <p>Snake Species Classifier — Ibrahim Khan</p>
+    <span class="api-badge">API: localhost:8000</span>
+  </footer>
+
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// Known venomous species (add more as needed)
+const VENOMOUS = [
+  'indian cobra','spectacled cobra','common krait','sind krait',
+  'russells viper','saw-scaled viper','sindh saw-scaled viper',
+  "sochurek saw-scaled viper",'himalayan pit viper','blunt-nosed viper',
+  'caspian cobra','beaked sea snake','hydrophis ornatus','hydrophis spiralis',
+  'stokes sea snake','yellow bellied sea snake','common krait'
+];
+
+let selectedFile = null;
+
+// Drag and drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleFile(file);
+});
+
+zone.addEventListener('click', () => document.getElementById('fileInput').click());
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('previewWrap').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+    hide('results'); hide('errorBox'); hide('loading'); hide('tryAgain');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runPrediction() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  show('loading'); hide('results'); hide('errorBox');
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+
+  try {
+    const res  = await fetch(`${API}/predict`, { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Prediction failed');
+    renderResults(data);
+  } catch(err) {
+    document.getElementById('errorBox').textContent =
+      `Error: ${err.message}. Make sure the API is running at ${API}`;
+    show('errorBox');
+  } finally {
+    hide('loading');
+    btn.disabled = false;
+    show('tryAgain');
+  }
+}
+
+function renderResults(data) {
+  const { prediction, top5 } = data;
+  const species  = prediction.species.replace(/_/g, ' ');
+  const conf     = prediction.confidence;
+  const isVenom  = VENOMOUS.some(v => prediction.species.includes(v.replace(/ /g,'_')) 
+                                   || prediction.species === v.replace(/ /g,'_'));
+
+  // Top card
+  document.getElementById('topSpecies').textContent = species;
+
+  const vtag = document.getElementById('venomousTag');
+  vtag.innerHTML = isVenom
+    ? `<span class="venomous-tag danger">⚠ Potentially venomous — handle with care</span>`
+    : `<span class="venomous-tag safe">✓ Non-venomous species</span>`;
+
+  // Ring animation
+  const circ = 2 * Math.PI * 30;
+  const fill  = (conf / 100) * circ;
+  setTimeout(() => {
+    document.getElementById('ringFill').style.strokeDasharray = `${fill} ${circ}`;
+    document.getElementById('ringPct').textContent = `${Math.round(conf)}%`;
+  }, 100);
+
+  // Top 5
+  const grid = document.getElementById('top5Grid');
+  grid.innerHTML = '';
+  top5.forEach((item, i) => {
+    const name = item.species.replace(/_/g,' ');
+    const div  = document.createElement('div');
+    div.className = `top5-item${i===0?' first':''}`;
+    div.innerHTML = `
+      <div class="rank">${item.rank}</div>
+      <div class="bar-wrap">
+        <div class="bar-label">${name}</div>
+        <div class="bar-track">
+          <div class="bar-fill" data-pct="${item.confidence}"></div>
+        </div>
+      </div>
+      <div class="bar-pct">${item.confidence.toFixed(1)}%</div>
+    `;
+    grid.appendChild(div);
+  });
+
+  // Animate bars
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill').forEach(bar => {
+      bar.style.width = `${bar.dataset.pct}%`;
+    });
+  }, 150);
+
+  show('results');
+}
+
+function resetUI() {
+  selectedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+  hide('results'); hide('errorBox'); hide('tryAgain'); hide('loading');
+}
+
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+</script>
+</body>
+</html>

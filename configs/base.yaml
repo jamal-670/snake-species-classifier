@@ -1,0 +1,32 @@
+seed: 42
+num_classes: 44
+
+data:
+  raw_dir:       data/raw
+  processed_dir: data/processed
+  aug_dir:       data/augmented
+  splits_dir:    data/splits
+  image_size:    300
+  crop_size:     260
+  num_workers:   2
+  smoke_test:    false
+
+model:
+  backbone:    efficientnet_b3
+  dropout:     0.4
+  pretrained:  true
+
+training:
+  stage1_epochs:       5
+  stage2_epochs:       15
+  stage3_epochs:       20
+  batch_size:          32
+  stage1_lr:           1.0e-3
+  stage2_lr:           3.0e-4
+  stage3_lr:           5.0e-5
+  weight_decay:        1.0e-4
+  label_smoothing:     0.1
+  early_stop_patience: 7
+
+augmentation:
+  target_count: 200
