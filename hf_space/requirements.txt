@@ -4,3 +4,4 @@ timm==0.9.12
 albumentations
 pillow
 numpy
+gradio==5.29.0
